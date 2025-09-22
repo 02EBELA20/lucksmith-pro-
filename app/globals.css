@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ფონის ფენა: ღრმა ინდიго → ცისფერი გრადიენტი */
+html, body {
+  height: 100%;
+}
+
+body {
+  @apply text-slate-900;
+  background:
+    radial-gradient(1200px 600px at 20% 0%, rgba(255,255,255,0.12), transparent 60%),
+    radial-gradient(1000px 500px at 120% 10%, rgba(255,255,255,0.08), transparent 60%),
+    linear-gradient(180deg, #0f172a 0%, #0b2b49 50%, #0e7490 100%);
+}
+
+/* „გლასი“ ბლოკების საერთო სტილი */
+.card {
+  @apply rounded-3xl border border-white/10 bg-white/80 backdrop-blur-md shadow-xl;
+}
+.card-dark {
+  @apply rounded-3xl border border-white/10 bg-slate-900/70 backdrop-blur-md shadow-xl text-white;
+}
+
+/* დიდი CTA ღილაკები */
+.btn {
+  @apply inline-flex items-center justify-center rounded-2xl px-5 py-3 font-medium shadow-lg transition;
+}
+.btn-primary {
+  @apply text-white bg-gradient-to-r from-indigo-600 to-cyan-500 hover:from-indigo-500 hover:to-cyan-400;
+}
+.btn-ghost {
+  @apply bg-white/90 text-slate-900 border border-slate-200 hover:bg-white;
+}
+
+/* ინპუტების ერთიანი სტილი */
+.input {
+  @apply w-full rounded-xl border border-slate-300 bg-white/95 p-3 text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500;
+}
+
+/* პატარა ტექსტი ტექსტურ ბადგზე უკეთ წასაკითხად */
+.muted { @apply text-slate-600; }
