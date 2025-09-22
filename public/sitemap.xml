@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="https://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- მთავარი -->
+  <url>
+    <loc>https://www.locksmith-pro.org/</loc>
+    <lastmod>2025-09-22</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- სტანდარტული გვერდები -->
+  <url>
+    <loc>https://www.locksmith-pro.org/about</loc>
+    <lastmod>2025-09-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.locksmith-pro.org/contact</loc>
+    <lastmod>2025-09-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- ლოკალური SEO: თითოეული ქალაქის/ადგილმდებარეობის გვერდი (გადმოაკოპირე ან დაამატე შენი slug-ები) -->
+  <url>
+    <loc>https://www.locksmith-pro.org/locations/selden</loc>
+    <lastmod>2025-09-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.locksmith-pro.org/locations/brooklyn</loc>
+    <lastmod>2025-09-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.locksmith-pro.org/locations/long-island</loc>
+    <lastmod>2025-09-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- გამოიყენე აქ დამატებით ნებისმიერი სხვა URL რომელიც გაქ -->
+</urlset>

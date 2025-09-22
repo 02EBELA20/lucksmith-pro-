@@ -1,3 +1,4 @@
 User-agent: *
-Allow: /
-Sitemap: /sitemap.xml
+Disallow:
+
+Sitemap: https://www.locksmith-pro.org/sitemap.xml
