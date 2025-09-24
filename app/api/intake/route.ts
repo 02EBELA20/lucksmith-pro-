@@ -1,45 +1,54 @@
-// app/api/intake/route.ts
+// Edge-ზე ლამაზი და სწრაფი POST proxy -> Formspree
+export const runtime = "edge";
+
+const FORMSPREE_ENDPOINT = "https://formspree.io/f/mldprazw"; // შენი form ID
+
 export async function POST(req: Request) {
   try {
-    const FORMSPREE = process.env.NEXT_PUBLIC_FORMSPREE;
-    if (!FORMSPREE) {
-      return new Response(
-        JSON.stringify({ error: "Formspree endpoint is missing (NEXT_PUBLIC_FORMSPREE)." }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
-      );
+    const inData = await req.formData();
+
+    // ჰონიპოტი, თუ ბოტმა შეავსო — ჩავშალოთ
+    const gotcha = (inData.get("_gotcha") || "").toString().trim();
+    if (gotcha) {
+      return new Response(JSON.stringify({ ok: true, spam: true }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
     }
 
-    const formData = await req.formData();
+    // გადავწეროთ page_url/referrer — ვაიძულოთ production დომენი
+    const out = new FormData();
+    inData.forEach((v, k) => out.append(k, v));
+    out.set("page_url", "https://www.locksmith-pro.org/");
+    out.set("referrer", "https://www.locksmith-pro.org/");
 
-    const res = await fetch(FORMSPREE, {
+    const res = await fetch(FORMSPREE_ENDPOINT, {
       method: "POST",
-      body: formData,
-      headers: { Accept: "application/json" },
-      // credentials არ გვჭირდება; Formspree არ მოითხოვს კუკებს
+      body: out,
+      headers: {
+        Accept: "application/json",
+        // ზოგი ანტი-სპამისთვის კარგია რეალური დომენის მითითება:
+        Origin: "https://www.locksmith-pro.org",
+        Referer: "https://www.locksmith-pro.org/",
+      },
     });
 
-    const contentType = res.headers.get("content-type") || "";
-    const payload = contentType.includes("application/json")
-      ? await res.json()
-      : await res.text();
+    if (!res.ok) {
+      const txt = await res.text();
+      return new Response(JSON.stringify({ ok: false, error: txt }), {
+        status: 500,
+        headers: { "content-type": "application/json" },
+      });
+    }
 
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  } catch (e: any) {
     return new Response(
-      typeof payload === "string" ? payload : JSON.stringify(payload),
-      {
-        status: res.status,
-        headers: { "Content-Type": contentType || "application/json" },
-      }
-    );
-  } catch (err: any) {
-    return new Response(
-      JSON.stringify({ error: err?.message || "Proxy error" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      JSON.stringify({ ok: false, error: e?.message || "proxy failed" }),
+      { status: 500, headers: { "content-type": "application/json" } }
     );
   }
-}
-
-export async function GET() {
-  return new Response(JSON.stringify({ ok: true }), {
-    headers: { "Content-Type": "application/json" },
-  });
 }
