@@ -1,8 +1,18 @@
 // scripts/generate-sitemap.mjs
-import { writeFileSync } from "node:fs";
-import { resolve } from "node:path";
-import cities from "../data/cities.json" assert { type: "json" };
-import { SITE_URL } from "../lib/seo.js";
+import { readFileSync, writeFileSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Load cities.json
+const citiesPath = resolve(__dirname, "../data/cities.json");
+const cities = JSON.parse(readFileSync(citiesPath, "utf8"));
+
+// SITE_URL env-დან (Vercel-ზე იქნება), ლოკალურად დეფოლტი:
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL || "https://www.locksmith-pro.org";
 
 const slug = (c) => c.toLowerCase().replace(/\s+/g, "-");
 
@@ -25,8 +35,6 @@ const xml = `<?xml version="1.0" encoding="UTF-8"?>
 ${[...staticUrls, ...cityUrls].map(url).join("\n")}
 </urlset>`.trim();
 
-const out = resolve(process.cwd(), "public", "sitemap.xml");
+const out = resolve(__dirname, "../public/sitemap.xml");
 writeFileSync(out, xml, "utf-8");
-console.log(
-  `✅ sitemap.xml generated (${staticUrls.length + cityUrls.length} URLs) → ${out}`
-);
+console.log(`✅ sitemap.xml generated (${staticUrls.length + cityUrls.length} URLs) → ${out}`);
