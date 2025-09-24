@@ -1,29 +1,30 @@
-// components/SEOHead.jsx
 import React from "react";
 import Head from "next/head";
-import { BRAND } from "../lib/seo";
+import {
+  BRAND,
+  SITE_URL,
+  SERVICE_CENTER,
+  SERVICE_RADIUS_METERS,
+} from "../lib/seo";
 
 export default function SEOHead({
   title = `${BRAND} — 24/7 Locksmith`,
   description = "Fast 24/7 locksmith services. Call now.",
-  url = "https://www.locksmith-pro.org",
-  image = `${url}/og-image.jpg`,
+  url = SITE_URL,
+  image = `${SITE_URL}/og-image.jpg`,
   phone,
   street = "Service area",
-  locality = "Brooklyn",
+  locality = "Long Island",
   region = "NY",
   postalCode = "11784",
   country = "US",
-  latitude = 40.8215,
-  longitude = -73.0558,
-  geoRadiusMeters = 72420
 }) {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
     name: BRAND,
     url,
-    logo: `${url}/logo.png`,
+    logo: `${SITE_URL}/logo.png`,
     image,
     telephone: phone || undefined,
     priceRange: "$$",
@@ -33,7 +34,7 @@ export default function SEOHead({
       addressLocality: locality,
       addressRegion: region,
       postalCode,
-      addressCountry: country
+      addressCountry: country,
     },
     openingHours: "Mo-Su 00:00-23:59",
     sameAs: [],
@@ -41,11 +42,11 @@ export default function SEOHead({
       "@type": "GeoCircle",
       geoMidpoint: {
         "@type": "GeoCoordinates",
-        latitude,
-        longitude
+        latitude: SERVICE_CENTER.lat,
+        longitude: SERVICE_CENTER.lng,
       },
-      geoRadius: geoRadiusMeters
-    }
+      geoRadius: SERVICE_RADIUS_METERS,
+    },
   };
 
   return (

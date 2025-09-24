@@ -1,147 +1,226 @@
 "use client";
-import { useMemo, useState } from "react";
 
-type ProblemType = "House Lockout" | "Car Lockout" | "Rekey" | "Lock Change" | "Car Key" | "Other";
+import { useEffect, useState } from "react";
 
-export default function IntakeForm({ initialCity = "" }: { initialCity?: string }) {
-  const [status, setStatus] = useState("");
-  const [problem, setProblem] = useState<ProblemType>("House Lockout");
-  const [asap, setAsap] = useState(true);
+type Props = { initialCity?: string };
+type ReverseAddr = { street?: string; city?: string; state?: string; postcode?: string };
 
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [apt, setApt] = useState("");
-  const [city, setCity] = useState(initialCity);
-  const [zip, setZip] = useState("");
-  const [details, setDetails] = useState("");
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [geoNote, setGeoNote] = useState("");
+export default function IntakeForm({ initialCity }: Props) {
+  const [sending, setSending] = useState(false);
+  const [locating, setLocating] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [coords, setCoords] = useState<{ lat?: number; lng?: number }>({});
+  const [addr, setAddr] = useState<ReverseAddr>({ city: initialCity });
 
-  const smsHref = useMemo(() => {
-    const to = process.env.NEXT_PUBLIC_SMS_E164 || "";
-    const text = encodeURIComponent(
-      [
-        `Locksmith request: ${problem}`,
-        name && `Name: ${name}`,
-        phone && `Phone: ${phone}`,
-        (address || city || zip) && `Location: ${[address, city, zip].filter(Boolean).join(", ")}`,
-        coords && `GPS: ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`,
-        details && `Details: ${details}`
-      ].filter(Boolean).join(" • ")
-    );
-    return `sms:${to}?&body=${text}`;
-  }, [problem, name, phone, address, city, zip, coords, details]);
+  const [meta, setMeta] = useState({
+    page_url: "",
+    referrer: "",
+    utm_source: "",
+    utm_medium: "",
+    utm_campaign: "",
+  });
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const qs = url.searchParams;
+
+    setMeta({
+      page_url: url.href,
+      referrer: document.referrer || "",
+      utm_source: qs.get("utm_source") || "",
+      utm_medium: qs.get("utm_medium") || "",
+      utm_campaign: qs.get("utm_campaign") || "",
+    });
+
+    const qpCity = qs.get("city");
+    const qpZip = qs.get("zip");
+    const qLat = qs.get("lat");
+    const qLng = qs.get("lng");
+
+    setAddr((p) => ({ ...p, city: qpCity || p.city, postcode: qpZip || p.postcode }));
+    if (qLat && qLng) {
+      const lat = parseFloat(qLat);
+      const lng = parseFloat(qLng);
+      if (!Number.isNaN(lat) && !Number.isNaN(lng)) setCoords({ lat, lng });
+    }
+  }, []);
+
+  async function reverseGeocode(lat: number, lng: number): Promise<ReverseAddr> {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
+    const res = await fetch(url, { headers: { "Accept-Language": "en-US,en;q=0.8" } });
+    const a = (await res.json())?.address ?? {};
+    const street = [a.house_number, a.road].filter(Boolean).join(" ").trim() || undefined;
+    const city = a.city || a.town || a.village || a.hamlet || a.suburb || a.county || undefined;
+    const state = a.state || undefined;
+    const postcode = a.postcode || undefined;
+    return { street, city, state, postcode };
+  }
 
   async function useMyLocation() {
-    if (!navigator.geolocation) { setGeoNote("Geolocation not supported."); return; }
-    setGeoNote("Locating…");
-    navigator.geolocation.getCurrentPosition(async (p) => {
-      const lat = p.coords.latitude, lng = p.coords.longitude;
-      setCoords({ lat, lng });
-      try {
-        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
-        const res = await fetch(url, { headers: { Accept: "application/json" } });
-        if (res.ok) {
-          const j = await res.json();
-          const a = j.address || {};
-          const streetLine = [a.house_number, a.road].filter(Boolean).join(" ");
-          if (streetLine) setAddress(streetLine);
-          setCity((a.city || a.town || a.village || a.hamlet || city || "").toString());
-          setZip((a.postcode || zip || "").toString());
-          setGeoNote("Location filled ✔");
-        } else setGeoNote("GPS captured. Type address.");
-      } catch { setGeoNote("GPS captured. Type address."); }
-    }, (err) => setGeoNote(err.message || "Could not get location."), { enableHighAccuracy: true, timeout: 10000 });
+    setErr(null);
+    setLocating(true);
+
+    if (!("geolocation" in navigator)) {
+      setErr("Geolocation is not supported.");
+      setLocating(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const { latitude, longitude } = pos.coords;
+          setCoords({ lat: latitude, lng: longitude });
+          const info = await reverseGeocode(latitude, longitude);
+          setAddr((prev) => ({ ...prev, ...info }));
+        } catch (e: any) {
+          setErr(e?.message || "Failed to resolve address.");
+        } finally {
+          setLocating(false);
+        }
+      },
+      (geoErr) => {
+        setErr(geoErr.message || "Location permission denied.");
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setStatus("Sending…");
-
-    const data = new FormData();
-    data.set("name", name);
-    data.set("phone", phone);
-    data.set("address", address);
-    data.set("apt", apt);
-    data.set("city", city);
-    data.set("zip", zip);
-    data.set("problem", problem);
-    data.set("asap", asap ? "Yes" : "No");
-    data.set("details", details);
-    if (coords) data.set("coords", `${coords.lat},${coords.lng}`);
+    setSending(true);
+    setErr(null);
 
     try {
-      const res = await fetch(process.env.NEXT_PUBLIC_FORMSPREE as string, {
-        method: "POST",
-        body: data,
-        headers: { Accept: "application/json" }
-      });
-      if (res.ok) {
-        setStatus("Request sent. We’ll call you back in minutes. ✅");
-        // არ ვშლით სახელს/ტელეფონს, რომ მომხმარებელი შეცდომის გარეშე ისევ განაგრძოს
-        setAddress(""); setApt(""); setZip(""); setDetails("");
-      } else setStatus("Error sending request.");
-    } catch { setStatus("Error sending request."); }
+      const fd = new FormData(e.currentTarget);
+      fd.set("_subject", `New Locksmith Lead — ${addr.city || initialCity || "Website"}`);
+      fd.set("_gotcha", ""); // honeypot
+      if (coords.lat) fd.set("lat", String(coords.lat));
+      if (coords.lng) fd.set("lng", String(coords.lng));
+
+      // meta
+      fd.set("page_url", meta.page_url);
+      fd.set("referrer", meta.referrer);
+      fd.set("utm_source", meta.utm_source);
+      fd.set("utm_medium", meta.utm_medium);
+      fd.set("utm_campaign", meta.utm_campaign);
+
+      // ENV წაიკითხე აქ – ბილდში ჩანაცვლდება სტრინგით
+      const FORMSPREE = (process.env.NEXT_PUBLIC_FORMSPREE || "").trim();
+      const endpoint = FORMSPREE || "/api/intake";
+      const headers = endpoint.startsWith("http") ? { Accept: "application/json" } : undefined;
+
+      const res = await fetch(endpoint, { method: "POST", body: fd, headers });
+
+      const ct = res.headers.get("content-type") || "";
+      const body = ct.includes("application/json") ? await res.json() : await res.text();
+
+      if (!res.ok) {
+        console.error("Submit failed:", res.status, body);
+        let msg = `Submission failed (${res.status}).`;
+        if (typeof body === "object" && body?.errors?.length) {
+          msg += " " + body.errors.map((x: any) => x.message).join(" ");
+        } else if (typeof body === "string" && body) {
+          msg += " " + body.slice(0, 200);
+        }
+        setErr(msg);
+        return;
+      }
+
+      (window as any).gtag?.("event", "lead_submit");
+      window.location.href = "/thanks";
+    } catch (e: any) {
+      console.error("Submit exception:", e);
+      setErr(e?.message || "Submission error.");
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 mt-4 sm:mt-6">
-      {/* slim badge (clean) */}
-<div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/70 bg-gradient-to-r from-emerald-50 to-teal-50 px-3 py-1.5 text-emerald-900 text-xs sm:text-sm shadow-sm">
-  {/* check icon */}
-  <svg viewBox="0 0 20 20" className="h-4 w-4 text-emerald-600" fill="currentColor" aria-hidden="true">
-    <path fillRule="evenodd" d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.2 7.3a1 1 0 0 1-1.42-.005L3.29 9.996a1 1 0 1 1 1.42-1.41l3.072 3.066 6.493-6.59a1 1 0 0 1 1.43.228z" clipRule="evenodd" />
-  </svg>
-  <span>We’ll call you back <strong>in minutes</strong>. Just the basics — we’ll handle the rest.</span>
-</div>
+    <form className="grid gap-3" onSubmit={handleSubmit}>
+      {/* hidden */}
+      <input type="hidden" name="_gotcha" />
+      <input type="hidden" name="_subject" />
+      <input type="hidden" name="lat" value={coords.lat ?? ""} />
+      <input type="hidden" name="lng" value={coords.lng ?? ""} />
+      <input type="hidden" name="page_url" value={meta.page_url} />
+      <input type="hidden" name="referrer" value={meta.referrer} />
+      <input type="hidden" name="utm_source" value={meta.utm_source} />
+      <input type="hidden" name="utm_medium" value={meta.utm_medium} />
+      <input type="hidden" name="utm_campaign" value={meta.utm_campaign} />
 
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <input className="input" name="name" placeholder="Your full name" value={name} onChange={e=>setName(e.target.value)} required/>
-        <input className="input" name="phone" type="tel" inputMode="tel" placeholder="Best phone number" value={phone} onChange={e=>setPhone(e.target.value)} required/>
+      <div className="grid gap-2 md:grid-cols-2">
+        <input name="name" placeholder="Full name" required className="input" />
+        <input name="phone" placeholder="Phone" required className="input" />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <input className="input md:col-span-2" name="address" placeholder="Address (street & number)" value={address} onChange={e=>setAddress(e.target.value)}/>
-        <input className="input" name="apt" placeholder="Apt / Unit (optional)" value={apt} onChange={e=>setApt(e.target.value)}/>
-        <input className="input" name="city" placeholder="City" value={city} onChange={e=>setCity(e.target.value)}/>
-        <input className="input" name="zip" placeholder="ZIP" pattern="[0-9]{5}" title="5-digit ZIP" value={zip} onChange={e=>setZip(e.target.value)}/>
+      <div className="grid gap-2 md:grid-cols-2">
+        <div className="flex gap-2">
+          <input
+            name="address"
+            placeholder="Street address"
+            value={addr.street ?? ""}
+            onChange={(e) => setAddr((p) => ({ ...p, street: e.target.value }))}
+            className="input flex-1"
+          />
+          <button type="button" onClick={useMyLocation} className="btn" disabled={locating}>
+            {locating ? "Locating…" : "📍 Use my location"}
+          </button>
+        </div>
+
+        <input
+          name="city"
+          placeholder="City"
+          value={addr.city ?? ""}
+          onChange={(e) => setAddr((p) => ({ ...p, city: e.target.value }))}
+          className="input"
+        />
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-        <button type="button" onClick={useMyLocation} className="btn btn-ghost w-full sm:w-auto">
-          Use my location (auto-fill)
-        </button>
-        {geoNote && <span className="text-xs text-slate-600">{geoNote}</span>}
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <select name="problem" className="input" value={problem} onChange={e=>setProblem(e.target.value as ProblemType)}>
-          <option>House Lockout</option><option>Car Lockout</option><option>Rekey</option>
-          <option>Lock Change</option><option>Car Key</option><option>Other</option>
+      <div className="grid gap-2 md:grid-cols-2">
+        <input
+          name="zip"
+          placeholder="ZIP code"
+          value={addr.postcode ?? ""}
+          onChange={(e) => setAddr((p) => ({ ...p, postcode: e.target.value }))}
+          className="input"
+        />
+        <select name="service" className="input" defaultValue="Car Lockout">
+          <option>Car Lockout</option>
+          <option>House Lockout</option>
+          <option>Rekey</option>
+          <option>Lock Change</option>
+          <option>Car Key Replacement</option>
+          <option>Commercial Service</option>
         </select>
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" checked={asap} onChange={e=>setAsap(e.target.checked)} />
-          ASAP / Emergency
-        </label>
       </div>
 
-      <textarea
-        className="input h-36 sm:h-28"
-        name="details"
-        placeholder="Describe the issue (lock brand, door type, kids/pets inside, etc.)"
-        value={details}
-        onChange={e=>setDetails(e.target.value)}
-      />
-
-      <input type="hidden" name="coords" value={coords ? `${coords.lat},${coords.lng}` : ""} />
-
-      <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-        <button type="submit" className="btn btn-primary w-full sm:w-auto">Send Request</button>
-        <a href={smsHref} className="btn btn-ghost w-full sm:w-auto">Text (prefilled)</a>
-        {status && <span className="text-xs sm:text-sm">{status}</span>}
+      <div className="grid gap-2 md:grid-cols-2">
+        <select name="urgency" className="input" defaultValue="Now (Emergency)">
+          <option>Now (Emergency)</option>
+          <option>Within 1–3 hours</option>
+          <option>Today</option>
+        </select>
+        <input name="email" type="email" placeholder="Email (optional)" className="input" />
       </div>
+
+      <textarea name="notes" placeholder="Details" className="input" rows={4} />
+
+      {err && (
+        <p className="text-sm text-red-500" aria-live="polite">
+          {err}
+        </p>
+      )}
+
+      <button type="submit" disabled={sending} className="btn btn-primary">
+        {sending ? "Sending..." : "Send Request"}
+      </button>
+
+      <p className="text-xs text-slate-500 mt-1">
+        By tapping “Use my location” you agree to share your approximate location to auto-fill the form.
+      </p>
     </form>
   );
 }
