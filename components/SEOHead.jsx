@@ -1,3 +1,4 @@
+// components/SEOHead.jsx
 import React from "react";
 import Head from "next/head";
 import {
@@ -5,6 +6,7 @@ import {
   SITE_URL,
   SERVICE_CENTER,
   SERVICE_RADIUS_METERS,
+  PHONE_DISPLAY,            // ← ეს ჩამოიტანე
 } from "../lib/seo";
 
 export default function SEOHead({
@@ -12,7 +14,7 @@ export default function SEOHead({
   description = "Fast 24/7 locksmith services. Call now.",
   url = SITE_URL,
   image = `${SITE_URL}/og-image.jpg`,
-  phone,
+  phone = PHONE_DISPLAY,    // ← დეფოლტი დავუწერეთ, აღარ არის სავალდებულო გადაცემა
   street = "Service area",
   locality = "Long Island",
   region = "NY",
@@ -58,14 +60,12 @@ export default function SEOHead({
       <meta name="viewport" content="width=device-width, initial-scale=1" />
       <link rel="canonical" href={url} />
 
-      {/* Open Graph */}
       <meta property="og:type" content="website" />
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
       <meta property="og:url" content={url} />
       <meta property="og:image" content={image} />
 
-      {/* Twitter */}
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />
