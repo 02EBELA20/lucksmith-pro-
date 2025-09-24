@@ -27,4 +27,6 @@ ${[...staticUrls, ...cityUrls].map(url).join("\n")}
 
 const out = resolve(process.cwd(), "public", "sitemap.xml");
 writeFileSync(out, xml, "utf-8");
-console.log(`✅ sitemap.xml generated (${staticUrls.length + cityUrls.length} URLs) → ${out}`);
+console.log(
+  `✅ sitemap.xml generated (${staticUrls.length + cityUrls.length} URLs) → ${out}`
+);
