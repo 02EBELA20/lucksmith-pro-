@@ -1,51 +1,68 @@
---- filename: next.config.mjs ---
-/** @type {import('next').NextConfig} */
+import fs from 'fs';
+import path from 'path';
+import cities from '../data/cities.json' assert { type: 'json' };
 
-// უსაფრთხოების ჰედერების მასივი
-const securityHeaders = [
-  {
-    key: 'X-DNS-Prefetch-Control',
-    value: 'on'
-  },
-  {
-    key: 'Strict-Transport-Security',
-    value: 'max-age=63072000; includeSubDomains; preload'
-  },
-  {
-    key: 'X-XSS-Protection',
-    value: '1; mode=block'
-  },
-  {
-    key: 'X-Frame-Options',
-    value: 'SAMEORIGIN'
-  },
-  {
-    key: 'X-Content-Type-Options',
-    value: 'nosniff'
-  },
-  {
-    key: 'Referrer-Policy',
-    value: 'origin-when-cross-origin'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.locksmith-pro.org';
+const PUBLIC_DIR = path.resolve('public');
+
+function generateSitemap() {
+  const urls = [
+    { loc: SITE_URL, priority: '1.0', changefreq: 'weekly' },
+    ...cities.map(city => ({
+      loc: `${SITE_URL}/${city.slug}`,
+      priority: '0.8',
+      changefreq: 'monthly',
+    })),
+  ];
+
+  const sitemapContent = `
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  ${urls.map(url => `
+    <url>
+      <loc>${url.loc}</loc>
+      <priority>${url.priority}</priority>
+      <changefreq>${url.changefreq}</changefreq>
+      <lastmod>${new Date().toISOString()}</lastmod>
+    </url>
+  `).join('\n  ')}
+</urlset>
+  `.trim();
+
+  const sitemapPath = path.join(PUBLIC_DIR, 'sitemap.xml');
+  fs.writeFileSync(sitemapPath, sitemapContent);
+  console.log(`✅ Sitemap generated with ${urls.length} URLs at ${sitemapPath}`);
+}
+
+function ensureRobotsTxt() {
+  const robotsPath = path.join(PUBLIC_DIR, 'robots.txt');
+  const sitemapUrl = `${SITE_URL}/sitemap.xml`;
+  let robotsContent = '';
+
+  if (fs.existsSync(robotsPath)) {
+    robotsContent = fs.readFileSync(robotsPath, 'utf8');
   }
-];
 
-const nextConfig = {
-  // SEO-სთვის მნიშვნელოვანი redirect-ები ძველი URL-ებიდან
-  async redirects() {
-    return [
-      { source: '/locations/:slug', destination: '/:slug', permanent: true },
-    ];
-  },
+  const sitemapLine = `Sitemap: ${sitemapUrl}`;
 
-  // უსაფრთხოების ჰედერები
-  async headers() {
-    return [
-      {
-        source: '/:path*', // გავრცელდეს ყველა გვერდზე
-        headers: securityHeaders,
-      },
-    ];
-  },
-};
+  if (robotsContent.includes('Sitemap:')) {
+    robotsContent = robotsContent.replace(/Sitemap:.*$/, sitemapLine);
+  } else {
+    robotsContent = `${robotsContent.trim()}\n${sitemapLine}`;
+  }
+  
+  if (!robotsContent.includes('User-agent:')) {
+     robotsContent = `User-agent: *\nAllow: /\nDisallow: /api/\n\n${robotsContent}`;
+  }
 
-export default nextConfig;
+  fs.writeFileSync(robotsPath, robotsContent.trim());
+  console.log(`✅ robots.txt updated at ${robotsPath}`);
+}
+
+try {
+    generateSitemap();
+    ensureRobotsTxt();
+} catch (error) {
+    console.error("❌ Error generating sitemap or robots.txt:", error);
+    process.exit(1);
+}
