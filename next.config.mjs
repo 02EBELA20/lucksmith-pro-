@@ -1,6 +1,12 @@
 import fs from 'fs';
 import path from 'path';
-import cities from '../data/cities.json' assert { type: 'json' };
+
+// --- START OF FIX ---
+// Changed the import method to a more stable one using fs.readFileSync
+const citiesJsonPath = path.resolve('data/cities.json');
+const citiesJson = fs.readFileSync(citiesJsonPath, 'utf8');
+const cities = JSON.parse(citiesJson);
+// --- END OF FIX ---
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.locksmith-pro.org';
 const PUBLIC_DIR = path.resolve('public');
