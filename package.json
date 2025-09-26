@@ -8,9 +8,9 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "npm run sitemap && next build",
+    "build": "next build",
     "start": "next start",
-    "sitemap": "node scripts/generate-sitemap.mjs",
+    "sitemap": "echo 'Sitemap is now generated automatically during the build process.'",
     "lint": "next lint"
   },
   "dependencies": {
