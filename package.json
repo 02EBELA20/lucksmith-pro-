@@ -1,4 +1,3 @@
---- filename: package.json ---
 {
   "name": "locksmithpro-express",
   "private": true,
