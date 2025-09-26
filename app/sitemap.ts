@@ -1,4 +1,3 @@
-// filename: app/sitemap.ts
 import { MetadataRoute } from 'next'
 import cities from '../data/cities.json';
 
