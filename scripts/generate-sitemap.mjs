@@ -1,40 +1,70 @@
-// scripts/generate-sitemap.mjs
-import { readFileSync, writeFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+--- filename: scripts/generate-sitemap.mjs ---
+import fs from 'fs';
+import path from 'path';
+import cities from '../data/cities.json' assert { type: 'json' };
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.locksmith-pro.org';
+const PUBLIC_DIR = path.resolve('public');
 
-// Load cities.json
-const citiesPath = resolve(__dirname, "../data/cities.json");
-const cities = JSON.parse(readFileSync(citiesPath, "utf8"));
+function generateSitemap() {
+  const urls = [
+    { loc: SITE_URL, priority: '1.0', changefreq: 'weekly' },
+    ...cities.map(city => ({
+      loc: `${SITE_URL}/${city.slug}`,
+      priority: '0.8',
+      changefreq: 'monthly',
+    })),
+  ];
 
-// SITE_URL env-დან (Vercel-ზე იქნება), ლოკალურად დეფოლტი:
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://www.locksmith-pro.org";
+  const sitemapContent = `
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  ${urls.map(url => `
+    <url>
+      <loc>${url.loc}</loc>
+      <priority>${url.priority}</priority>
+      <changefreq>${url.changefreq}</changefreq>
+      <lastmod>${new Date().toISOString()}</lastmod>
+    </url>
+  `).join('\n  ')}
+</urlset>
+  `.trim();
 
-const slug = (c) => c.toLowerCase().replace(/\s+/g, "-");
-
-function url(loc) {
-  const lastmod = new Date().toISOString();
-  return `
-  <url>
-    <loc>${loc}</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-    <lastmod>${lastmod}</lastmod>
-  </url>`;
+  const sitemapPath = path.join(PUBLIC_DIR, 'sitemap.xml');
+  fs.writeFileSync(sitemapPath, sitemapContent);
+  console.log(`✅ Sitemap generated with ${urls.length} URLs at ${sitemapPath}`);
 }
 
-const staticUrls = [`${SITE_URL}/`];
-const cityUrls = (cities ?? []).map((c) => `${SITE_URL}/${slug(c)}`);
+function ensureRobotsTxt() {
+  const robotsPath = path.join(PUBLIC_DIR, 'robots.txt');
+  const sitemapUrl = `${SITE_URL}/sitemap.xml`;
+  let robotsContent = '';
 
-const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${[...staticUrls, ...cityUrls].map(url).join("\n")}
-</urlset>`.trim();
+  if (fs.existsSync(robotsPath)) {
+    robotsContent = fs.readFileSync(robotsPath, 'utf8');
+  }
 
-const out = resolve(__dirname, "../public/sitemap.xml");
-writeFileSync(out, xml, "utf-8");
-console.log(`✅ sitemap.xml generated (${staticUrls.length + cityUrls.length} URLs) → ${out}`);
+  const sitemapLine = `Sitemap: ${sitemapUrl}`;
+
+  if (robotsContent.includes('Sitemap:')) {
+    robotsContent = robotsContent.replace(/Sitemap:.*$/, sitemapLine);
+  } else {
+    robotsContent = `${robotsContent.trim()}\n${sitemapLine}`;
+  }
+  
+  // Ensure basic rules exist
+  if (!robotsContent.includes('User-agent:')) {
+     robotsContent = `User-agent: *\nAllow: /\nDisallow: /api/\n\n${robotsContent}`;
+  }
+
+  fs.writeFileSync(robotsPath, robotsContent.trim());
+  console.log(`✅ robots.txt updated at ${robotsPath}`);
+}
+
+try {
+    generateSitemap();
+    ensureRobotsTxt();
+} catch (error) {
+    console.error("❌ Error generating sitemap or robots.txt:", error);
+    process.exit(1);
+}
