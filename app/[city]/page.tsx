@@ -1,98 +1,102 @@
-// filename: app/[city]/page.tsx
-import type { Metadata } from 'next';
-import Link from 'next/link';
-import { generatePageMetadata, BRAND, PHONE_DISPLAY, PHONE_E164 } from '../../lib/seo';
-import JsonLd from '../../components/JsonLd';
-import IntakeForm from '../../components/IntakeForm';
-import fs from 'fs'; // <- დავამატეთ fs
-import path from 'path'; // <- დავამატეთ path
+import IntakeForm from "../../components/IntakeForm";
+import JsonLd from "../../components/JsonLd";
+import SEOHead from "../../components/SEOHead";
+import CallButton from "../../components/CallButton";
+import Link from "next/link";
+import { BRAND, PHONE_DISPLAY, PHONE_E164, SITE_URL, titleTemplate } from "../../lib/seo";
+import cities from "../../data/cities.json" assert { type: "json" };
 
-// --- START OF FIX ---
-// JSON ფაილის წაკითხვა საიმედო გზით
-const citiesFilePath = path.join(process.cwd(), 'data', 'cities.json');
-const citiesJson = fs.readFileSync(citiesFilePath, 'utf8');
-const cities: { slug: string, name: string }[] = JSON.parse(citiesJson);
-// --- END OF FIX ---
+const slug = (s: string) => s.toLowerCase().replace(/\s+/g, "-");
+const human = (s: string) => s.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
-const getCityBySlug = (slug: string) => cities.find(c => c.slug === slug);
+export const dynamicParams = false;        // მხოლოდ გენერირებული ქალაქები
+export const revalidate = 60 * 60 * 24;    // ISR: 24სთ
 
-export async function generateStaticParams() {
-  return cities.map((city) => ({
-    city: city.slug,
-  }));
+export function generateStaticParams() {
+  return (cities as string[]).map((c) => ({ city: slug(c) }));
 }
 
-export async function generateMetadata({ params }: { params: { city: string } }): Promise<Metadata> {
-  const city = getCityBySlug(params.city);
-  const cityName = city ? city.name : params.city.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+const FAQ = [
+  { q: "How fast can you arrive?", a: "We usually arrive within 20–30 minutes in typical traffic." },
+  { q: "Do you replace or rekey locks?", a: "We do both. Rekey when hardware is fine; replace when damaged or for upgrades." },
+  { q: "Can you make car keys if I lost all keys?", a: "Yes. We cut and program many car keys on-site. Availability depends on make/model/year." },
+];
 
-  const title = `${cityName} Locksmith - 24/7 Emergency Service | ${BRAND}`;
-  const description = `Need a locksmith in ${cityName}, NY? ${BRAND} offers fast 24/7 car, home, and business lockout services. Call ${PHONE_DISPLAY} for immediate help in ${cityName}!`;
-  const canonicalPath = `/${params.city}`;
-  
-  return generatePageMetadata(title, description, canonicalPath);
+function faqJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: FAQ.map(({ q, a }) => ({
+      "@type": "Question",
+      name: q,
+      acceptedAnswer: { "@type": "Answer", text: a },
+    })),
+  };
 }
-
-export const dynamicParams = false;
 
 export default function CityPage({ params }: { params: { city: string } }) {
-  const city = getCityBySlug(params.city);
-  const cityName = city!.name;
+  const slugCity = params.city;
+  const niceCity = human(slugCity);
+  const telHref = `tel:${PHONE_E164}`;
+  const pageUrl = `${SITE_URL}/${slugCity}`;
 
   return (
-    <>
-      <JsonLd city={cityName} />
-      
-      <section className="text-center">
-        <h1 className="text-3xl sm:text-4xl font-bold text-white">
-          Your Local Locksmith in <span className="text-cyan-300">{cityName}, NY</span>
+    <div className="space-y-10">
+      <SEOHead
+        title={titleTemplate(`${BRAND} in ${niceCity}`)}
+        description={`24/7 locksmith in ${niceCity}. Car & house lockouts, rekey, lock change, car keys. Call ${PHONE_DISPLAY}.`}
+        url={pageUrl}
+        phone={PHONE_DISPLAY}
+        locality={niceCity}
+        region="NY"
+      />
+      <JsonLd city={niceCity} url={pageUrl} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd()) }}
+      />
+
+      <nav className="text-sm">
+        <Link href="/" className="link">← Back to Home</Link>
+      </nav>
+
+      <section className="card-dark p-8">
+        <h1 className="text-3xl md:text-4xl font-extrabold">
+          {BRAND} in <span className="text-cyan-300">{niceCity}</span>
         </h1>
-        <p className="mt-3 text-lg text-slate-300 max-w-3xl mx-auto">
-          Locked out of your car, home, or office in {cityName}? Our expert mobile locksmiths provide fast, reliable 24/7 emergency services right to your location.
+        <p className="mt-2 text-white/80">
+          Fast, reliable locksmith services available 24/7 in {niceCity}. Call for lockouts, rekeying, lock changes, and car keys.
         </p>
-        <div className="mt-8">
-            <a href={`tel:${PHONE_E164}`} className="btn btn-primary text-lg">
-              Call Now for Help in {cityName}
-            </a>
-        </div>
-      </section>
-      
-      <section className="mt-12">
-        <div className="rounded-2xl card-dark p-6 sm:p-8">
-          <h2 className="text-2xl font-semibold text-white mb-4">Our Services in {cityName}</h2>
-          <div className="grid md:grid-cols-2 gap-6 text-slate-300">
-            <div>
-              <h3 className="font-semibold text-lg text-cyan-300">Emergency Car Lockout</h3>
-              <p>Keys locked in your car? We provide damage-free unlocking services for all vehicle makes and models throughout {cityName}.</p>
-            </div>
-            <div>
-              <h3 className="font-semibold text-lg text-cyan-300">Residential Locksmith</h3>
-              <p>From house lockouts to lock changes and rekeying, we ensure your {cityName} home is secure.</p>
-            </div>
-            <div>
-              <h3 className="font-semibold text-lg text-cyan-300">Commercial Locksmith</h3>
-              <p>Protect your business with high-security locks, master key systems, and emergency access services for your {cityName} office or storefront.</p>
-            </div>
-             <div>
-              <h3 className="font-semibold text-lg text-cyan-300">24/7 Availability</h3>
-              <p>We are available around the clock. Day or night, you can count on us for any lock-related emergency in {cityName}.</p>
-            </div>
-          </div>
-        </div>
+        <CallButton href={telHref} className="btn btn-primary mt-5">
+          Call {PHONE_DISPLAY}
+        </CallButton>
       </section>
 
-       <section id="request" className="mx-auto w-full max-w-5xl mt-12 scroll-mt-20">
-        <div className="rounded-2xl bg-white p-4 sm:p-6 shadow-lg border border-slate-200">
-          <h2 className="text-2xl font-semibold text-slate-800 mb-2">Get a Quote for {cityName}</h2>
-          <IntakeForm initialCity={cityName} />
-        </div>
+      <section className="card p-8">
+        <h2 className="text-xl font-bold text-slate-900">Locksmith Services in {niceCity}</h2>
+        <ul className="mt-3 grid gap-2 text-slate-800 text-sm md:grid-cols-2">
+          <li>• House & Apartment Lockout</li>
+          <li>• Car Lockout (all makes & models)</li>
+          <li>• Lock Rekeying</li>
+          <li>• Lock Replacement & Installation</li>
+          <li>• Car Key Replacement & Programming</li>
+          <li>• Commercial / Storefront Locks</li>
+        </ul>
       </section>
 
-      <section className="mt-12 text-center">
-          <Link href="/" className="text-cyan-300 hover:underline">
-            &larr; Back to all service areas
-          </Link>
+      <section className="card p-8">
+        <h2 className="text-xl font-bold text-slate-900">Local Coverage</h2>
+        <p className="text-slate-700 text-sm">
+          We serve neighborhoods around {niceCity}, including nearby roads and landmarks.
+          In most cases we can arrive within 20–30 minutes.
+        </p>
       </section>
-    </>
+
+      <section id="request" className="card p-8">
+        <h2 className="text-xl font-bold text-slate-900">Request Service</h2>
+        <p className="text-sm muted">Leave your info — we’ll call you back in minutes.</p>
+        <IntakeForm initialCity={niceCity} />
+      </section>
+    </div>
   );
 }
