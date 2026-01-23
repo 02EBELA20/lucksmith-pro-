@@ -7,9 +7,9 @@ export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "https://www.locksmith-pro.org";
 
 export const PHONE_E164 =
-  process.env.NEXT_PUBLIC_PHONE_E164 || "+19177690262";
+  process.env.NEXT_PUBLIC_PHONE_E164 || "+16673719099";
 export const PHONE_DISPLAY =
-  process.env.NEXT_PUBLIC_PHONE_DISPLAY || "+1 (917) 769-0262";
+  process.env.NEXT_PUBLIC_PHONE_DISPLAY || "+1 (667) 371-9099";
 
 export const SERVICE_CENTER = {
   lat: Number(process.env.SERVICE_CENTER_LAT || 40.866),
