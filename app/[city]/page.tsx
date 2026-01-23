@@ -13,8 +13,9 @@ export const dynamicParams = false;        // მხოლოდ გენერ
 export const revalidate = 60 * 60 * 24;    // ISR: 24სთ
 
 export function generateStaticParams() {
-  return (cities as string[]).map((c) => ({ city: slug(c) }));
+  return cities.map((c) => ({ city: c.slug }));
 }
+
 
 const FAQ = [
   { q: "How fast can you arrive?", a: "We usually arrive within 20–30 minutes in typical traffic." },
