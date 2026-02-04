@@ -75,12 +75,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         {/* Footer */}
         <footer className="mx-auto w-full max-w-5xl px-4 sm:px-6 py-6 text-xs text-white/70 text-center">
-          <div className="mb-2">
+          {/* Links */}
+          <div className="mb-2 flex justify-center gap-4">
             <Link
               href="/privacy-policy"
               className="underline underline-offset-4 hover:text-white"
             >
               Privacy Policy
+            </Link>
+
+            {/* ✅ Added Gallery Link */}
+            <Link
+              href="/gallery"
+              className="underline underline-offset-4 hover:text-white"
+            >
+              Photo Gallery
             </Link>
           </div>
 
