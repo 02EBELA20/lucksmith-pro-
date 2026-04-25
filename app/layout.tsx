@@ -87,13 +87,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Script>
           </>
         ) : null}
-
-        <Script
-          id="assistscope-widget"
-          src="https://assistscope.com/widget.js"
-          data-salon-id="1b83ea1d-bf03-4055-a16d-ce24f19e3e1a"
-          strategy="afterInteractive"
-        />
+        
       </body>
     </html>
   );
