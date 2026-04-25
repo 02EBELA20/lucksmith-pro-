@@ -44,26 +44,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className="min-h-screen flex flex-col bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-slate-900">
-        {/* Header */}
         <header className="sticky top-0 z-30 bg-white/80 backdrop-blur shadow-sm">
           <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 py-2 sm:py-3 flex items-center justify-between">
-            <Link
-              href="/"
-              className="flex items-center gap-2 sm:gap-3"
-              aria-label="Go to Home"
-            >
+            <Link href="/" className="flex items-center gap-2 sm:gap-3" aria-label="Go to Home">
               <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg bg-gradient-to-br from-indigo-600 to-cyan-500 text-white grid place-items-center font-bold shadow">
                 {initials}
               </div>
-              <span className="text-sm sm:text-base font-semibold">
-                {BRAND}
-              </span>
+              <span className="text-sm sm:text-base font-semibold">{BRAND}</span>
             </Link>
-
-            <CallButton
-              href={telHref}
-              className="btn btn-primary text-xs sm:text-sm md:text-base px-3 sm:px-4 py-1.5 sm:py-2"
-            >
+            <CallButton href={telHref} className="btn btn-primary text-xs sm:text-sm md:text-base px-3 sm:px-4 py-1.5 sm:py-2">
               Call {PHONE_DISPLAY}
             </CallButton>
           </div>
@@ -73,37 +62,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </main>
 
-        {/* Footer */}
         <footer className="mx-auto w-full max-w-5xl px-4 sm:px-6 py-6 text-xs text-white/70 text-center">
-          {/* Links */}
           <div className="mb-2 flex justify-center gap-4">
-            <Link
-              href="/privacy-policy"
-              className="underline underline-offset-4 hover:text-white"
-            >
+            <Link href="/privacy-policy" className="underline underline-offset-4 hover:text-white">
               Privacy Policy
             </Link>
-
-            {/* ✅ Added Gallery Link */}
-            <Link
-              href="/gallery"
-              className="underline underline-offset-4 hover:text-white"
-            >
+            <Link href="/gallery" className="underline underline-offset-4 hover:text-white">
               Photo Gallery
             </Link>
           </div>
-
-          © {new Date().getFullYear()} {BRAND}. Mobile locksmith service. All
-          rights reserved.
+          © {new Date().getFullYear()} {BRAND}. Mobile locksmith service. All rights reserved.
         </footer>
 
-        {/* GA4 */}
         {GA_ID ? (
           <>
-            <Script
-              src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
-              strategy="afterInteractive"
-            />
+            <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
             <Script id="ga4" strategy="afterInteractive">
               {`
                 window.dataLayer = window.dataLayer || [];
@@ -114,6 +87,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Script>
           </>
         ) : null}
+
+        <Script
+          src="https://6e8a437b-a023-4439-b692-8c256e5b0af0.lovableproject.com/widget.js"
+          data-salon-id="1b83ea1d-bf03-4055-a16d-ce24f19e3e1a"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
