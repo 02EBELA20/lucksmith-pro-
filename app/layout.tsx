@@ -89,7 +89,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         ) : null}
 
         <Script
-          src="https://6e8a437b-a023-4439-b692-8c256e5b0af0.lovableproject.com/widget.js"
+          id="assistscope-widget"
+          src="https://assistscope.com/widget.js"
           data-salon-id="1b83ea1d-bf03-4055-a16d-ce24f19e3e1a"
           strategy="afterInteractive"
         />
